@@ -73,7 +73,7 @@
           podman-compose
 
           # === Runtimes / languages ===
-          (python311.withPackages (ps: with ps; [
+          (python3.withPackages (ps: with ps; [
             pip
             black
             autopep8
@@ -99,6 +99,7 @@
           # Podman as drop-in Docker replacement
           alias docker=podman
           alias docker-compose=podman-compose
+          export PODMAN_IGNORE_CGROUPSV1_WARNING=1
 
           # Go workspace
           export GOPATH="$HOME/go"
