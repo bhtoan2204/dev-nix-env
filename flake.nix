@@ -62,12 +62,6 @@
           m4
           bison
 
-          # === Kubernetes / DevOps ===
-          kubectl
-          kubernetes-helm
-          k9s
-          terraform
-
           # === Container (Podman as docker) ===
           podman
           podman-compose
@@ -86,14 +80,6 @@
           ]))
           nodejs_22
 
-          # === Java ===
-          jdk17_headless
-          maven
-
-          # === Data / media ===
-          yt-dlp
-          kcat
-          mpv
 
           # === Other CLI ===
           stripe-cli
