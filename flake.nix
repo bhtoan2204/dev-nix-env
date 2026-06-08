@@ -71,7 +71,10 @@
           # === Container (Podman as docker) ===
           podman
           podman-compose
-          (pkgs.writeShellScriptBin "docker" ''exec ${pkgs.podman}/bin/podman "$@"'')
+          (pkgs.writeShellScriptBin "docker" ''
+            export PODMAN_IGNORE_CGROUPSV1_WARNING=1
+            exec ${pkgs.podman}/bin/podman "$@"
+          '')
           (pkgs.writeShellScriptBin "docker-compose" ''exec ${pkgs.podman-compose}/bin/podman-compose "$@"'')
 
           # === Runtimes / languages ===
