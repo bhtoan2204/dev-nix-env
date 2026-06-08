@@ -68,9 +68,11 @@
           k9s
           terraform
 
-          # === Container (Podman) ===
+          # === Container (Podman as docker) ===
           podman
           podman-compose
+          (pkgs.writeShellScriptBin "docker" ''exec ${pkgs.podman}/bin/podman "$@"'')
+          (pkgs.writeShellScriptBin "docker-compose" ''exec ${pkgs.podman-compose}/bin/podman-compose "$@"'')
 
           # === Runtimes / languages ===
           (python3.withPackages (ps: with ps; [
@@ -96,9 +98,6 @@
         ];
 
         shellHook = ''
-          # Podman as drop-in Docker replacement
-          alias docker=podman
-          alias docker-compose=podman-compose
           export PODMAN_IGNORE_CGROUPSV1_WARNING=1
 
           # Go workspace
