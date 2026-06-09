@@ -65,8 +65,6 @@
 
           # Python local bins (pip install --user)
           export PATH="$HOME/.local/bin:$PATH"
-
-          echo "Dev environment ready — Podman $(podman --version 2>/dev/null | awk '{print $3}'), Go $(go version | awk '{print $3}')"
         '';
       };
 
