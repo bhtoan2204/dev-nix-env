@@ -10,84 +10,54 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
     in {
+      packages.${system}.default = pkgs.buildEnv {
+        name = "dev-global-env";
+        paths = [
+          pkgs.git pkgs.gh pkgs.curl pkgs.wget pkgs.gnumake pkgs.tree pkgs.htop pkgs.tmux pkgs.screen pkgs.unzip pkgs.zip pkgs.entr pkgs.jq pkgs.yq-go
+          pkgs.ripgrep pkgs.fd pkgs.bat pkgs.fzf
+          pkgs.go pkgs.gopls pkgs.golangci-lint pkgs.grpcurl pkgs.mockgen pkgs.protoc-gen-go pkgs.protoc-gen-go-grpc pkgs.gotools pkgs.gotests pkgs.go-migrate
+          pkgs.protobuf pkgs.cmake pkgs.ninja pkgs.pkg-config pkgs.autoconf pkgs.autoconf-archive pkgs.automake pkgs.libtool pkgs.m4 pkgs.bison
+          pkgs.podman pkgs.podman-compose pkgs.nodejs_22 pkgs.stripe-cli pkgs.inetutils
+          
+          # Wrapper docker cho Global profile
+          (pkgs.writeShellScriptBin "docker" ''
+            export PODMAN_IGNORE_CGROUPSV1_WARNING=1
+            export XDG_CONFIG_HOME="$HOME/.config"
+            exec ${pkgs.podman}/bin/podman "$@"
+          '')
+          # Wrapper docker-compose cho Global profile
+          (pkgs.writeShellScriptBin "docker-compose" ''
+            export XDG_CONFIG_HOME="$HOME/.config"
+            exec ${pkgs.podman-compose}/bin/podman-compose "$@"
+          '')
+          (pkgs.python3.withPackages (ps: with ps; [ ps.pip ps.black ps.autopep8 ps.pycodestyle ]))
+        ];
+      };
 
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
+          git gh curl wget gnumake tree htop tmux screen unzip zip entr jq yq-go
+          ripgrep fd bat fzf
+          go gopls golangci-lint grpcurl mockgen protoc-gen-go protoc-gen-go-grpc gotools gotests go-migrate
+          protobuf cmake ninja pkg-config autoconf autoconf-archive automake libtool m4 bison
+          podman podman-compose nodejs_22 stripe-cli inetutils
 
-          # === Core utilities ===
-          git
-          gh
-          curl
-          wget
-          gnumake
-          tree
-          htop
-          tmux
-          screen
-          unzip
-          zip
-          entr
-          jq
-          yq-go
-
-          # === Search & file tools ===
-          ripgrep
-          fd
-          bat
-          fzf
-
-          # === Go toolchain ===
-          go
-          gopls
-          golangci-lint
-          grpcurl
-          mockgen
-          protoc-gen-go
-          protoc-gen-go-grpc
-          gotools        # goimports, guru, godoc, ...
-          gotests
-          go-migrate     # CLI: migrate
-
-          # === Protobuf / gRPC ===
-          protobuf       # protoc
-
-          # === Build tools ===
-          cmake
-          ninja
-          pkg-config
-          autoconf
-          autoconf-archive
-          automake
-          libtool
-          m4
-          bison
-
-          # === Container (Podman as docker) ===
-          podman
-          podman-compose
           (pkgs.writeShellScriptBin "docker" ''
             export PODMAN_IGNORE_CGROUPSV1_WARNING=1
+            export XDG_CONFIG_HOME="$HOME/.config"
             exec ${pkgs.podman}/bin/podman "$@"
           '')
-          (pkgs.writeShellScriptBin "docker-compose" ''exec ${pkgs.podman-compose}/bin/podman-compose "$@"'')
 
-          # === Runtimes / languages ===
-          (python3.withPackages (ps: with ps; [
-            pip
-            black
-            autopep8
-            pycodestyle
-          ]))
-          nodejs_22
+          (pkgs.writeShellScriptBin "docker-compose" ''
+            export XDG_CONFIG_HOME="$HOME/.config"
+            exec ${pkgs.podman-compose}/bin/podman-compose "$@"
+          '')
 
-
-          # === Other CLI ===
-          stripe-cli
-          inetutils
+          (python3.withPackages (ps: with ps; [ pip black autopep8 pycodestyle ]))
         ];
 
         shellHook = ''
-          export PODMAN_IGNORE_CGROUPSV1_WARNING=1
+          export PATH="/usr/bin:/usr/sbin:$PATH"
 
           # Go workspace
           export GOPATH="$HOME/go"
@@ -95,11 +65,6 @@
 
           # Python local bins (pip install --user)
           export PATH="$HOME/.local/bin:$PATH"
-
-          # Note: google/wire and protoc-gen-validate not in nixpkgs.
-          # Install once manually:
-          #   go install github.com/google/wire/cmd/wire@latest
-          #   go install github.com/envoyproxy/protoc-gen-validate@latest
 
           echo "Dev environment ready — Podman $(podman --version 2>/dev/null | awk '{print $3}'), Go $(go version | awk '{print $3}')"
         '';
