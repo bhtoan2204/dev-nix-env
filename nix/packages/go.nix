@@ -1,7 +1,6 @@
 { pkgs }:
 
 with pkgs; [
-  deadcode
   go
   govulncheck
   gopls
@@ -11,7 +10,7 @@ with pkgs; [
   nilaway
   protoc-gen-go
   protoc-gen-go-grpc
-  staticcheck
+  go-tools
   gotools
   gotests
   go-migrate
