@@ -1,48 +1,197 @@
-# Portable development environment
+# Personal development environment
 
-Reproducible Go, Rust, Python, Node.js, and DevOps tools for Linux, managed by
-Nix flakes.
+A reproducible, terminal-first development environment for backend work. Nix
+provides the CLI and language toolchains; Home Manager owns user configuration;
+nix-darwin and NixOS modules handle settings that genuinely belong to an
+operating system.
 
-## Set up a new machine
+The daily workflow is intentionally small: tmux, Neovim, lazygit, shells, test
+runners, containers, and Kubernetes tools. The Neovim setup supplies a Go LSP,
+Treesitter, Telescope, completion, and formatting without trying to hide Vim
+behind a large IDE distribution.
 
-After installing Nix with flakes enabled, clone this repository and run:
+## Supported systems
 
-```bash
-nix profile install .
+| Platform | Architectures | Configuration |
+| --- | --- | --- |
+| Ubuntu and other Linux | x86_64, AArch64 | Standalone Home Manager |
+| macOS | Apple Silicon, Intel | nix-darwin + Home Manager, or standalone Home Manager |
+| NixOS | x86_64 (inventory default) | NixOS module + integrated Home Manager |
+
+Change the username and per-host architecture in `hosts/default.nix` before the
+first activation. The default username is `toan`. No Git name/email or secrets
+are stored in this repository.
+
+## Repository layout
+
+```text
+.
+├── flake.nix                 # inputs and output composition only
+├── hosts/
+│   ├── default.nix           # username and host architectures
+│   ├── macos/                # nix-darwin host settings
+│   ├── ubuntu/               # standalone Linux host boundary
+│   └── nixos/                # NixOS host and generated hardware config
+├── lib/                      # small output constructors
+├── modules/
+│   ├── common/               # shared Home Manager configuration
+│   ├── darwin/               # macOS user settings
+│   ├── linux/                # generic Linux user settings
+│   └── nixos/                # NixOS system and user settings
+├── packages/                 # base, build, Go, Rust, Node, and DevOps groups
+└── dotfiles/                 # Neovim, tmux, and shell source configuration
 ```
 
-This installs the default tool collection into the user profile. To use it only
-inside this repository instead, run:
+Package lists live in exactly one place. Both `nix develop` and Home Manager
+consume `packages/default.nix`; platform filters in the DevOps group keep Podman
+on Linux and the Docker client on macOS.
+
+## New machine bootstrap
+
+1. Install Nix with flakes enabled. A multi-user installation is recommended.
+2. Clone this repository.
+3. Edit `hosts/default.nix` for the local username and architecture.
+4. Follow the platform section below.
+
+The original workflows remain available:
 
 ```bash
-nix develop
+nix develop                 # temporary shell with the complete tool set
+nix profile install .       # tools only; does not manage dotfiles
+direnv allow                # automatic nix develop in this repository
 ```
 
-For automatic activation, enable the `direnv` hook in your shell once, then run:
+Individual groups can also be installed, for example
+`nix profile install .#go .#base`.
+
+## Ubuntu
+
+Install only the OS-owned prerequisites through APT:
 
 ```bash
-direnv allow
+sudo apt update
+sudo apt install curl git xz-utils zsh
 ```
 
-## Maintenance
+After installing Nix and cloning the repository, activate the user environment:
 
-Update pinned packages and verify every supported Linux architecture:
+```bash
+nix run .#home-manager -- switch --flake .#ubuntu
+chsh -s /usr/bin/zsh
+```
+
+Nix manages user-space tools and dotfiles. Ubuntu should continue to manage the
+kernel, networking, firewall, system Docker daemon (if used), and system login
+shell. The included Linux `docker` and `docker-compose` commands intentionally
+wrap rootless Podman to preserve the repository's previous behavior. Rootless
+containers may also require Ubuntu's `uidmap`, `/etc/subuid`, and `/etc/subgid`
+setup; these are OS concerns and are not modified here.
+
+## macOS
+
+For a full Apple Silicon installation (system settings plus Home Manager):
+
+```bash
+nix run .#darwin-rebuild -- switch --flake .#macos
+darwin-rebuild switch --flake .#macos
+```
+
+Use `.#macos-intel` for an Intel Mac. The first command bootstraps
+`darwin-rebuild`; later activations use the second command. Homebrew is not
+required by this configuration. Install Docker Desktop, Colima, or another
+daemon separately only if container workloads need one—the Nix package supplies
+the client, not a macOS virtualization service.
+
+On Apple Silicon, the user environment can instead be managed without adopting
+nix-darwin:
+
+```bash
+nix run .#home-manager -- switch --flake .#macos
+```
+
+The pinned Home Manager release no longer publishes its CLI package for Intel
+macOS, so `.#macos-intel` should be applied through nix-darwin. Nixpkgs 26.05 is
+its final x86_64-darwin release, so Intel outputs use the separate
+`nixpkgs-darwin-intel` input while maintained platforms track unstable. Intel
+support is best-effort and should be retired when that pin is no longer safe.
+
+## NixOS
+
+The repository includes a real NixOS system boundary, not generic Linux settings
+masquerading as a NixOS host. Before the first activation, replace the empty
+hardware placeholder with the current machine's generated configuration:
+
+```bash
+nixos-generate-config --show-hardware-config > hosts/nixos/hardware-configuration.nix
+sudo nixos-rebuild switch --flake .#nixos
+```
+
+Review the generated file and configure the real boot loader, disk layout,
+hostname, username, and networking before switching. The checked-in
+`REPLACE_ME`/`nodev` values exist only to make cross-platform flake evaluation
+possible and are not a deployable hardware configuration. The shared user
+module is integrated through Home Manager. The system module enables
+NetworkManager, Zsh, and Podman with Docker compatibility.
+
+## Everyday maintenance
+
+Apply user-only changes on Ubuntu or standalone macOS:
+
+```bash
+nix run .#home-manager -- switch --flake .#ubuntu  # or .#macos
+```
+
+Update pinned dependencies, format Nix files, and validate outputs:
 
 ```bash
 nix flake update
+nix fmt
+nix flake check
 nix flake check --all-systems --no-build
 ```
 
-The flake currently supports `x86_64-linux` and `aarch64-linux`.
+Review `flake.lock` before committing an update. `nix flake check` on one machine
+builds checks only for that machine's system; `--all-systems --no-build` catches
+cross-platform evaluation problems without attempting foreign builds.
 
-## Structure
+## Extending the environment
 
-Package lists are grouped by responsibility:
+### Add a package
 
-```text
-nix/packages/
-├── system.nix  # CLI, build tools, Python, and native libraries
-├── go.nix      # Go toolchain and utilities
-├── rust.nix    # Rust toolchain and Cargo utilities
-└── devops.nix  # Containers, Node.js, Stripe, and Docker wrappers
-```
+Add it to the smallest matching file under `packages/`. Create a new group only
+when it has a clear, durable responsibility. The group automatically becomes
+part of the default bundle, development shell, and Home Manager environment.
+
+### Add a module
+
+Put shared user behavior under `modules/common/`, OS-specific user behavior under
+`modules/linux/` or `modules/darwin/`, and NixOS system behavior under
+`modules/nixos/`. Import a focused common module from
+`modules/common/default.nix`.
+
+### Add a host
+
+Add its system to `hosts/default.nix`, create a small directory under `hosts/`,
+and compose it in the appropriate `homeConfigurations`,
+`darwinConfigurations`, or `nixosConfigurations` output in `flake.nix`. Keep
+hardware details in the host directory and reusable behavior in `modules/`.
+
+## Useful defaults
+
+- tmux keeps `C-b`; use `C-b h/j/k/l` to move and uppercase letters to resize.
+- Neovim uses Space as leader: `ff` files, `fg` text, `fb` buffers, and `f` format.
+- LSP uses standard motion-friendly bindings: `gd`, `gr`, `K`, `<leader>rn`, and
+  `<leader>ca`.
+- Shell aliases are limited to `ll`, `la`, `cat` (bat), and `lg` (lazygit).
+
+## Troubleshooting
+
+- If Home Manager refuses to replace an existing dotfile, move that file aside
+  once, rerun activation, and compare it with the generated version.
+- If an unfree-package error appears, use the flake outputs rather than importing
+  these package files independently; the flake enables unfree packages.
+- If `nix develop` does not activate through direnv, run `direnv allow` again
+  after changing `.envrc` or `flake.lock`.
+- If Podman fails on Ubuntu, verify subordinate UID/GID mappings and the distro's
+  rootless-container prerequisites.
+- Use `nix flake show` to list the exact outputs available on the current revision.

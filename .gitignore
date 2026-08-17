@@ -1,3 +1,7 @@
 .direnv/
 result
 result-*
+
+# Keep machine credentials and generated secret material out of Git.
+hosts/*/secrets.nix
+secrets/
