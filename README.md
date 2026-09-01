@@ -64,6 +64,56 @@ direnv allow                # automatic nix develop in this repository
 Individual groups can also be installed, for example
 `nix profile install .#go .#base`.
 
+## Neovim Go development
+
+Apply the Home Manager configuration once to install the tools and Neovim
+configuration (choose the host that matches this machine):
+
+```bash
+nix run .#home-manager -- switch --flake .#ubuntu  # or .#macos
+```
+
+NixOS and full macOS installations should instead use the rebuild command from
+their platform section below. To update, run `nix flake update`, review
+`flake.lock`, run `nix flake check`, and apply the same Home Manager or rebuild
+command again.
+
+Start work from any Go repository:
+
+```bash
+cd /path/to/go-project
+nvim .
+```
+
+Opening a directory shows Neo-tree. Move with `j`/`k`, press Enter to open the
+selected file, and press `<Space>e` whenever you want to close or reopen the
+tree. Telescope's file and text pickers use the Nix-provided `fd` and `ripgrep`.
+Press `<Space>` and pause briefly to let which-key show the available shortcuts;
+`<Space>?` shows the complete keybinding window.
+
+The ten most useful bindings to learn first are:
+
+| Key | Action |
+| --- | --- |
+| `<Space>e` | Toggle the file explorer |
+| `<Space>ff` | Find files |
+| `<Space>fg` | Grep text across the repository |
+| `gd` | Go to a symbol's definition |
+| `gr` | Find references to a symbol |
+| `K` | Show hover documentation |
+| `<Space>rn` | Rename a symbol |
+| `<Space>f` | Format and organize imports |
+| `<Space>db` | Toggle a debugger breakpoint |
+| `<Space>dt` | Debug the nearest Go test |
+
+`gD` goes to a declaration, `gi` goes to an implementation, `<Space>ca`
+opens code actions, `<Space>xx` lists diagnostics, and `<Space>dc` starts or
+continues the debugger. Go files are also formatted on save with `goimports`
+followed by `gofumpt`; gopls and golangci-lint provide diagnostics. To run the
+whole test suite without debugging, use `:terminal go test ./...`. To debug a
+test, put the cursor inside it and press `<Space>dt`; use `<Space>dc` to continue
+and `<Space>dq` to stop.
+
 ## Ubuntu
 
 Install only the OS-owned prerequisites through APT:
