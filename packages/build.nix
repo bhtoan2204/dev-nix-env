@@ -12,6 +12,7 @@ let
 in
 with pkgs;
 [
+  clang
   gnumake
   cmake
   ninja

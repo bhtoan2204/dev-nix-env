@@ -17,6 +17,7 @@ with pkgs;
   yq-go
   curl
   wget
+  tree-sitter
   tree
   btop
   direnv

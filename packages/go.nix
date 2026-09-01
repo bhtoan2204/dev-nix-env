@@ -13,6 +13,8 @@ with pkgs;
   mockgen
   nilaway
   gotests
+  gomodifytags
+  impl
   go-migrate
   protoc-gen-go
   protoc-gen-go-grpc

@@ -75,7 +75,7 @@
             packages = environment.allPackages;
             shellHook = ''
               export GOPATH="''${GOPATH:-$HOME/go}"
-              export PATH="$GOPATH/bin:$HOME/.local/bin:$PATH"
+              export PATH="$PATH:$GOPATH/bin:$HOME/.local/bin"
             '';
           };
         }
