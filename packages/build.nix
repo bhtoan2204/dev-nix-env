@@ -30,3 +30,4 @@ with pkgs;
   stylua
   pythonEnvironment
 ]
+++ lib.optionals stdenv.hostPlatform.isLinux [ gdb ]
