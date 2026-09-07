@@ -13,6 +13,7 @@ in
 with pkgs;
 [
   clang
+  clang-tools
   gnumake
   cmake
   ninja
